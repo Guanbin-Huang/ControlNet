@@ -661,9 +661,9 @@ class LatentDiffusion(DDPM):
             raise NotImplementedError(f"encoder_posterior of type '{type(encoder_posterior)}' not yet implemented")
         return self.scale_factor * z
 
-    def get_learned_conditioning(self, c):
-        if self.cond_stage_forward is None:
-            if hasattr(self.cond_stage_model, 'encode') and callable(self.cond_stage_model.encode):
+    def get_learned_conditioning(self, c): # ['cat, best quality, e...y detailed']
+        if self.cond_stage_forward is None: # <=====
+            if hasattr(self.cond_stage_model, 'encode') and callable(self.cond_stage_model.encode): # <=====
                 c = self.cond_stage_model.encode(c)
                 if isinstance(c, DiagonalGaussianDistribution):
                     c = c.mode()
@@ -672,7 +672,7 @@ class LatentDiffusion(DDPM):
         else:
             assert hasattr(self.cond_stage_model, self.cond_stage_forward)
             c = getattr(self.cond_stage_model, self.cond_stage_forward)(c)
-        return c
+        return c # torch.Size([1, 77, 768])
 
     def meshgrid(self, h, w):
         y = torch.arange(0, h).view(h, 1, 1).repeat(1, w, 1)
@@ -825,7 +825,7 @@ class LatentDiffusion(DDPM):
             z = rearrange(z, 'b h w c -> b c h w').contiguous()
 
         z = 1. / self.scale_factor * z
-        return self.first_stage_model.decode(z)
+        return self.first_stage_model.decode(z).d
 
     @torch.no_grad()
     def encode_first_stage(self, x):

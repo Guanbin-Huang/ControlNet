@@ -77,8 +77,26 @@ class DDIMSampler(object):
                ucg_schedule=None,
                **kwargs
                ):
-        if conditioning is not None:
-            if isinstance(conditioning, dict):
+        # import dill
+
+        # # Capture all arguments at the beginning of the function
+        # args = locals().copy()
+        # del args['self']  # Remove 'self' from the dictionary
+
+        # # Save the arguments using dill
+        # with open('sample_function_arguments.pkl', 'wb') as f:
+        #     dill.dump(args, f)
+        
+        # ############ just run it
+        # # If you also want to save the entire `self` object:
+        # with open('self_object.pkl', 'wb') as f:
+        #     dill.dump(self, f)
+        
+        # exit()
+
+    
+        if conditioning is not None: # here
+            if isinstance(conditioning, dict): # here
                 ctmp = conditioning[list(conditioning.keys())[0]]
                 while isinstance(ctmp, list): ctmp = ctmp[0]
                 cbs = ctmp.shape[0]
@@ -129,14 +147,14 @@ class DDIMSampler(object):
                       ucg_schedule=None):
         device = self.model.betas.device
         b = shape[0]
-        if x_T is None:
+        if x_T is None: # here
             img = torch.randn(shape, device=device)
-        else:
+        else: # pass
             img = x_T
 
-        if timesteps is None:
+        if timesteps is None: # here
             timesteps = self.ddpm_num_timesteps if ddim_use_original_steps else self.ddim_timesteps
-        elif timesteps is not None and not ddim_use_original_steps:
+        elif timesteps is not None and not ddim_use_original_steps: # pass
             subset_end = int(min(timesteps / self.ddim_timesteps.shape[0], 1) * self.ddim_timesteps.shape[0]) - 1
             timesteps = self.ddim_timesteps[:subset_end]
 
@@ -151,12 +169,12 @@ class DDIMSampler(object):
             index = total_steps - i - 1
             ts = torch.full((b,), step, device=device, dtype=torch.long)
 
-            if mask is not None:
+            if mask is not None: # pass
                 assert x0 is not None
                 img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?
                 img = img_orig * mask + (1. - mask) * img
 
-            if ucg_schedule is not None:
+            if ucg_schedule is not None: # here
                 assert len(ucg_schedule) == len(time_range)
                 unconditional_guidance_scale = ucg_schedule[i]
 
@@ -182,21 +200,23 @@ class DDIMSampler(object):
                       temperature=1., noise_dropout=0., score_corrector=None, corrector_kwargs=None,
                       unconditional_guidance_scale=1., unconditional_conditioning=None,
                       dynamic_threshold=None):
+        
+
         b, *_, device = *x.shape, x.device
 
-        if unconditional_conditioning is None or unconditional_guidance_scale == 1.:
+        if unconditional_conditioning is None or unconditional_guidance_scale == 1.: # pass
             model_output = self.model.apply_model(x, t, c)
-        else:
+        else: # here 
             model_t = self.model.apply_model(x, t, c)
             model_uncond = self.model.apply_model(x, t, unconditional_conditioning)
             model_output = model_uncond + unconditional_guidance_scale * (model_t - model_uncond)
 
-        if self.model.parameterization == "v":
+        if self.model.parameterization == "v": # pass
             e_t = self.model.predict_eps_from_z_and_v(x, t, model_output)
-        else:
+        else: # here
             e_t = model_output
 
-        if score_corrector is not None:
+        if score_corrector is not None: # pass
             assert self.model.parameterization == "eps", 'not implemented'
             e_t = score_corrector.modify_score(self.model, e_t, x, t, c, **corrector_kwargs)
 
@@ -211,21 +231,21 @@ class DDIMSampler(object):
         sqrt_one_minus_at = torch.full((b, 1, 1, 1), sqrt_one_minus_alphas[index],device=device)
 
         # current prediction for x_0
-        if self.model.parameterization != "v":
+        if self.model.parameterization != "v": # here
             pred_x0 = (x - sqrt_one_minus_at * e_t) / a_t.sqrt()
-        else:
+        else: # pass
             pred_x0 = self.model.predict_start_from_z_and_v(x, t, model_output)
 
-        if quantize_denoised:
+        if quantize_denoised: # pass
             pred_x0, _, *_ = self.model.first_stage_model.quantize(pred_x0)
 
-        if dynamic_threshold is not None:
+        if dynamic_threshold is not None: # pass
             raise NotImplementedError()
 
         # direction pointing to x_t
         dir_xt = (1. - a_prev - sigma_t**2).sqrt() * e_t
         noise = sigma_t * noise_like(x.shape, device, repeat_noise) * temperature
-        if noise_dropout > 0.:
+        if noise_dropout > 0.: # pass
             noise = torch.nn.functional.dropout(noise, p=noise_dropout)
         x_prev = a_prev.sqrt() * pred_x0 + dir_xt + noise
         return x_prev, pred_x0
