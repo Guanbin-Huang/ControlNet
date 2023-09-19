@@ -1,4 +1,5 @@
 *.pkl
+set_git.sh
 
 .idea/
 
